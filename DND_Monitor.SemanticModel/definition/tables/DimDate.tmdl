@@ -1,0 +1,68 @@
+table DimDate
+	lineageTag: b0000002-0000-0000-0000-000000000001
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Date
+		lineageTag: b0000002-0000-0000-0000-000000000002
+
+	column Jaar
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Jaar
+		lineageTag: b0000002-0000-0000-0000-000000000003
+
+	column Maand
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Maand
+		lineageTag: b0000002-0000-0000-0000-000000000004
+
+	column MaandNr
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: MaandNr
+		lineageTag: b0000002-0000-0000-0000-000000000005
+
+	column WeekISO
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: WeekISO
+		lineageTag: b0000002-0000-0000-0000-000000000006
+
+	column Weekdag
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Weekdag
+		lineageTag: b0000002-0000-0000-0000-000000000007
+
+	column IsWerkdag
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: IsWerkdag
+		lineageTag: b0000002-0000-0000-0000-000000000008
+
+	column WekenSindsStart
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: WekenSindsStart
+		lineageTag: b0000002-0000-0000-0000-000000000009
+
+	partition DimDate = m
+		mode: import
+		source =
+				let
+				    Bron = Csv.Document(File.Contents(DataFolder & "DimDate.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Headers gepromoveerd" = Table.PromoteHeaders(Bron, [PromoteAllScalars=true]),
+				    #"Type gewijzigd" = Table.TransformColumnTypes(#"Headers gepromoveerd",{
+				        {"Date", type date}, {"Jaar", Int64.Type}, {"Maand", type text}, {"MaandNr", Int64.Type},
+				        {"WeekISO", Int64.Type}, {"Weekdag", type text}, {"IsWerkdag", type logical},
+				        {"WekenSindsStart", Int64.Type}
+				    })
+				in
+				    #"Type gewijzigd"
+
+	annotation PBI_ResultType = Table
+

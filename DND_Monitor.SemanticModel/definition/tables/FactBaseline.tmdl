@@ -1,0 +1,48 @@
+table FactBaseline
+	lineageTag: b0000004-0000-0000-0000-000000000001
+
+	column RondeKey
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RondeKey
+		lineageTag: b0000004-0000-0000-0000-000000000002
+
+	column RondeNr
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RondeNr
+		lineageTag: b0000004-0000-0000-0000-000000000003
+
+	column RondeType
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RondeType
+		lineageTag: b0000004-0000-0000-0000-000000000004
+
+	column Bussen
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Bussen
+		lineageTag: b0000004-0000-0000-0000-000000000005
+
+	column Pakken
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Pakken
+		lineageTag: b0000004-0000-0000-0000-000000000006
+
+	partition FactBaseline = m
+		mode: import
+		source =
+				let
+				    Bron = Csv.Document(File.Contents(DataFolder & "FactBaseline.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Headers gepromoveerd" = Table.PromoteHeaders(Bron, [PromoteAllScalars=true]),
+				    #"Type gewijzigd" = Table.TransformColumnTypes(#"Headers gepromoveerd",{
+				        {"RondeKey", type text}, {"RondeNr", type text}, {"RondeType", type text},
+				        {"Bussen", Int64.Type}, {"Pakken", type number}
+				    })
+				in
+				    #"Type gewijzigd"
+
+	annotation PBI_ResultType = Table
+

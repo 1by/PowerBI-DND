@@ -1,0 +1,66 @@
+table FactRealisatie
+	lineageTag: b0000006-0000-0000-0000-000000000001
+
+	column Datum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Datum
+		lineageTag: b0000006-0000-0000-0000-000000000002
+
+	column RondeKey
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RondeKey
+		lineageTag: b0000006-0000-0000-0000-000000000003
+
+	column LaatsteScanTijd
+		dataType: dateTime
+		formatString: Long Time
+		summarizeBy: none
+		sourceColumn: LaatsteScanTijd
+		lineageTag: b0000006-0000-0000-0000-000000000004
+
+	column WerkelijkEindUur
+		dataType: dateTime
+		formatString: Long Time
+		summarizeBy: none
+		sourceColumn: WerkelijkEindUur
+		lineageTag: b0000006-0000-0000-0000-000000000005
+
+	column GerealiseerdPakketten
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: GerealiseerdPakketten
+		lineageTag: b0000006-0000-0000-0000-000000000006
+
+	column GerealiseerdBussen
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: GerealiseerdBussen
+		lineageTag: b0000006-0000-0000-0000-000000000007
+
+	column UitgesteldeStukken
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: UitgesteldeStukken
+		lineageTag: b0000006-0000-0000-0000-000000000008
+
+	partition FactRealisatie = m
+		mode: import
+		source =
+				let
+				    Bron = Folder.Files(RealisatieFolder & "pod"),
+				    #"Enkel csv" = Table.SelectRows(Bron, each Text.EndsWith([Name], ".csv")),
+				    #"Bestanden ingelezen" = Table.AddColumn(#"Enkel csv", "Data", each Table.PromoteHeaders(Csv.Document([Content], [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]), [PromoteAllScalars=true])),
+				    Gecombineerd = Table.Combine(#"Bestanden ingelezen"[Data]),
+				    #"Type gewijzigd" = Table.TransformColumnTypes(Gecombineerd,{
+				        {"Datum", type date}, {"RondeKey", type text}, {"LaatsteScanTijd", type time},
+				        {"WerkelijkEindUur", type time}, {"GerealiseerdPakketten", Int64.Type},
+				        {"GerealiseerdBussen", Int64.Type}, {"UitgesteldeStukken", Int64.Type}
+				    })
+				in
+				    #"Type gewijzigd"
+
+	annotation PBI_ResultType = Table
+

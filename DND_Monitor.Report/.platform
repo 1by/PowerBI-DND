@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "DND_Monitor"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "c1c1c1c1-2222-4a1a-9c1a-000000000001"
+  }
+}

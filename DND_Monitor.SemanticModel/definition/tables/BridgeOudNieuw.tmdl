@@ -1,0 +1,35 @@
+table BridgeOudNieuw
+	lineageTag: b0000005-0000-0000-0000-000000000001
+
+	column OudRondeNr
+		dataType: string
+		summarizeBy: none
+		sourceColumn: OudRondeNr
+		lineageTag: b0000005-0000-0000-0000-000000000002
+
+	column NieuwRondeNr
+		dataType: string
+		summarizeBy: none
+		sourceColumn: NieuwRondeNr
+		lineageTag: b0000005-0000-0000-0000-000000000003
+
+	column PctNieuw
+		dataType: double
+		summarizeBy: none
+		sourceColumn: PctNieuw
+		lineageTag: b0000005-0000-0000-0000-000000000004
+
+	partition BridgeOudNieuw = m
+		mode: import
+		source =
+				let
+				    Bron = Csv.Document(File.Contents(DataFolder & "BridgeOudNieuw.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Headers gepromoveerd" = Table.PromoteHeaders(Bron, [PromoteAllScalars=true]),
+				    #"Type gewijzigd" = Table.TransformColumnTypes(#"Headers gepromoveerd",{
+				        {"OudRondeNr", type text}, {"NieuwRondeNr", type text}, {"PctNieuw", type number}
+				    })
+				in
+				    #"Type gewijzigd"
+
+	annotation PBI_ResultType = Table
+

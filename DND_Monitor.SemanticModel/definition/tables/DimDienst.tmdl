@@ -1,0 +1,100 @@
+table DimDienst
+	lineageTag: b0000001-0000-0000-0000-000000000001
+
+	column RondeKey
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RondeKey
+		lineageTag: b0000001-0000-0000-0000-000000000002
+
+	column DienstNr
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: DienstNr
+		lineageTag: b0000001-0000-0000-0000-000000000003
+
+	column DagType
+		dataType: string
+		summarizeBy: none
+		sourceColumn: DagType
+		lineageTag: b0000001-0000-0000-0000-000000000004
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+		lineageTag: b0000001-0000-0000-0000-000000000005
+
+	column Zone
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Zone
+		lineageTag: b0000001-0000-0000-0000-000000000006
+
+	column Gemeente
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Gemeente
+		lineageTag: b0000001-0000-0000-0000-000000000007
+
+	column Voertuig
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Voertuig
+		lineageTag: b0000001-0000-0000-0000-000000000008
+
+	column BeginUur
+		dataType: dateTime
+		formatString: Short Time
+		summarizeBy: none
+		sourceColumn: BeginUur
+		lineageTag: b0000001-0000-0000-0000-000000000009
+
+	column EindUur
+		dataType: dateTime
+		formatString: Short Time
+		summarizeBy: none
+		sourceColumn: EindUur
+		lineageTag: b0000001-0000-0000-0000-00000000000a
+
+	column Opmerking
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Opmerking
+		lineageTag: b0000001-0000-0000-0000-00000000000b
+
+	column HeeftDepRit
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: HeeftDepRit
+		lineageTag: b0000001-0000-0000-0000-00000000000c
+
+	column HeeftExtraTaak
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: HeeftExtraTaak
+		lineageTag: b0000001-0000-0000-0000-00000000000d
+
+	column VrijeDag
+		dataType: string
+		summarizeBy: none
+		sourceColumn: VrijeDag
+		lineageTag: b0000001-0000-0000-0000-00000000000e
+
+	partition DimDienst = m
+		mode: import
+		source =
+				let
+				    Bron = Csv.Document(File.Contents(DataFolder & "DimDienst.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Headers gepromoveerd" = Table.PromoteHeaders(Bron, [PromoteAllScalars=true]),
+				    #"Type gewijzigd" = Table.TransformColumnTypes(#"Headers gepromoveerd",{
+				        {"RondeKey", type text}, {"DienstNr", Int64.Type}, {"DagType", type text}, {"Type", type text},
+				        {"Zone", type text}, {"Gemeente", type text}, {"Voertuig", type text},
+				        {"BeginUur", type time}, {"EindUur", type time}, {"Opmerking", type text},
+				        {"HeeftDepRit", type logical}, {"HeeftExtraTaak", type logical}, {"VrijeDag", type text}
+				    })
+				in
+				    #"Type gewijzigd"
+
+	annotation PBI_ResultType = Table
+

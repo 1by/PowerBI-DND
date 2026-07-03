@@ -1,0 +1,207 @@
+table _Measures
+	lineageTag: b0000009-0000-0000-0000-000000000001
+
+	measure 'Bussen Norm' = SUM ( FactBaseline[Bussen] )
+		formatString: #,0
+		displayFolder: Basis
+		lineageTag: b0000009-0000-0000-0000-000000000002
+
+	measure 'Pakken Norm' = SUM ( FactBaseline[Pakken] )
+		formatString: #,0.0
+		displayFolder: Basis
+		lineageTag: b0000009-0000-0000-0000-000000000003
+
+	measure '# Diensten' = DISTINCTCOUNT ( DimDienst[DienstNr] )
+		formatString: #,0
+		displayFolder: Basis
+		lineageTag: b0000009-0000-0000-0000-000000000004
+
+	measure 'Bussen per Dag' = ```
+			// Dense diensten draaien dag-om-dag (JL/JM wisselen grondgebied), dus op een
+			// gegeven kalenderdag rijdt maar de helft van de dense vloot. Non-dense (JT/JU)
+			// rijdt elke dag voluit. Vandaar /2 enkel op het dense-aandeel.
+			VAR DenseDeel =
+			    CALCULATE ( [Bussen Norm], DimDienst[Type] = "dense" )
+			VAR NonDenseDeel =
+			    CALCULATE ( [Bussen Norm], DimDienst[Type] = "non-dense" )
+			RETURN
+			    DIVIDE ( DenseDeel, 2 ) + NonDenseDeel
+			```
+		formatString: #,0
+		displayFolder: Basis
+		lineageTag: b0000009-0000-0000-0000-000000000005
+
+	measure 'Pakken per Dag' = ```
+			// Zelfde dag-om-dag redenering als 'Bussen per Dag': dense telt voor de helft,
+			// non-dense (elke dag actief) telt volledig mee.
+			VAR DenseDeel =
+			    CALCULATE ( [Pakken Norm], DimDienst[Type] = "dense" )
+			VAR NonDenseDeel =
+			    CALCULATE ( [Pakken Norm], DimDienst[Type] = "non-dense" )
+			RETURN
+			    DIVIDE ( DenseDeel, 2 ) + NonDenseDeel
+			```
+		formatString: #,0.0
+		displayFolder: Basis
+		lineageTag: b0000009-0000-0000-0000-000000000006
+
+	measure '% Ronden Binnen Eindtijd' = ```
+			// BLANK() zolang er nog geen realisatiedata is ingeladen (./realisatie/pod/).
+			// Vergelijkt per ronde de laatste PoD-scan met het geplande einduur uit DimDienst
+			// (via de actieve FactRealisatie -> DimDienst relatie, opgehaald met RELATED
+			// binnen de rijcontext van FILTER).
+			VAR AantalRondes = COUNTROWS ( FactRealisatie )
+			RETURN
+			    IF (
+			        AantalRondes = 0,
+			        BLANK (),
+			        VAR BinnenEindtijd =
+			            COUNTROWS (
+			                FILTER (
+			                    FactRealisatie,
+			                    FactRealisatie[LaatsteScanTijd] <= RELATED ( DimDienst[EindUur] )
+			                )
+			            )
+			        RETURN
+			            DIVIDE ( BinnenEindtijd, AantalRondes )
+			    )
+			```
+		formatString: 0.0%
+		displayFolder: Realisatie
+		lineageTag: b0000009-0000-0000-0000-000000000007
+
+	measure 'Niet-Uitgereikt Non-Dense' = ```
+			// BLANK() zolang FactRealisatie leeg is. CALCULATE voegt de Type-filter toe
+			// bovenop de reeds actieve filtercontext (bv. een weekfilter), zonder de
+			// bestaande context te overschrijven.
+			IF (
+			    COUNTROWS ( FactRealisatie ) = 0,
+			    BLANK (),
+			    CALCULATE (
+			        SUM ( FactRealisatie[UitgesteldeStukken] ),
+			        DimDienst[Type] = "non-dense"
+			    )
+			)
+			```
+		formatString: #,0
+		displayFolder: Realisatie
+		lineageTag: b0000009-0000-0000-0000-000000000008
+
+	measure 'Overuren Minuten' = ```
+			// BLANK() zolang FactRealisatie leeg is. SUMX itereert rij per rij zodat elke
+			// ronde zijn eigen gepland einduur (RELATED) tegenover zijn eigen werkelijk
+			// einduur zet; enkel positieve verschillen (overuren) tellen mee.
+			IF (
+			    COUNTROWS ( FactRealisatie ) = 0,
+			    BLANK (),
+			    SUMX (
+			        FactRealisatie,
+			        VAR GeplandEind = RELATED ( DimDienst[EindUur] )
+			        VAR WerkelijkEind = FactRealisatie[WerkelijkEindUur]
+			        VAR VerschilMinuten = DATEDIFF ( GeplandEind, WerkelijkEind, MINUTE )
+			        RETURN
+			            IF ( VerschilMinuten > 0, VerschilMinuten, 0 )
+			    )
+			)
+			```
+		formatString: #,0
+		displayFolder: Realisatie
+		lineageTag: b0000009-0000-0000-0000-000000000009
+
+	measure 'Delta vs Norm %' = ```
+			// BLANK() zolang FactRealisatie leeg is of de norm 0 is. Norm komt uit
+			// FactBaseline (statische ronde-norm), realisatie uit FactRealisatie
+			// (huidige filtercontext, bv. per week of per dienst).
+			VAR GerealiseerdVolume = SUM ( FactRealisatie[GerealiseerdPakketten] )
+			VAR Norm = [Pakken Norm]
+			RETURN
+			    IF (
+			        COUNTROWS ( FactRealisatie ) = 0 || Norm = 0,
+			        BLANK (),
+			        DIVIDE ( GerealiseerdVolume - Norm, Norm )
+			    )
+			```
+		formatString: 0.0%;-0.0%
+		displayFolder: Realisatie
+		lineageTag: b0000009-0000-0000-0000-00000000000a
+
+	measure 'Aantal Klachten' = SUM ( KLARA[AantalKlachten] )
+		formatString: #,0
+		displayFolder: Bridge
+		lineageTag: b0000009-0000-0000-0000-00000000000b
+
+	measure 'Klachten Baseline Herwogen' = ```
+			// Herweegt historische klachten (vóór de piloot, gelogd op OUDE RondeNr) naar de
+			// NIEUWE rondestructuur. TREATAS injecteert de OudRondeNr-waarden uit
+			// BridgeOudNieuw als virtuele filter op KLARA[RondeNr] — zonder fysieke relatie,
+			// dus zonder de bestaande DimDienst/DimDate-filters te breken. SUMX itereert per
+			// mapping-rij (1 oude ronde -> 1 nieuwe ronde, gewicht PctNieuw).
+			SUMX (
+			    BridgeOudNieuw,
+			    VAR OudWaarde =
+			        CALCULATE (
+			            [Aantal Klachten],
+			            TREATAS ( VALUES ( BridgeOudNieuw[OudRondeNr] ), KLARA[RondeNr] )
+			        )
+			    RETURN
+			        OudWaarde * BridgeOudNieuw[PctNieuw] / 100
+			)
+			```
+		formatString: #,0.0
+		displayFolder: Bridge
+		lineageTag: b0000009-0000-0000-0000-00000000000c
+
+	measure 'PoD Volume' = SUM ( PodVolumeHistorisch[AantalStukken] )
+		formatString: #,0
+		displayFolder: Bridge
+		lineageTag: b0000009-0000-0000-0000-00000000000d
+
+	measure 'PoD Baseline Herwogen' = ```
+			// Zelfde bridge-patroon als 'Klachten Baseline Herwogen', nu toegepast op
+			// historische PoD-volumes (vóór de piloot, op OUDE RondeNr) om een herwogen
+			// baseline te krijgen voor de Pre/Post-vergelijking (pagina 3).
+			SUMX (
+			    BridgeOudNieuw,
+			    VAR OudWaarde =
+			        CALCULATE (
+			            [PoD Volume],
+			            TREATAS ( VALUES ( BridgeOudNieuw[OudRondeNr] ), PodVolumeHistorisch[RondeNr] )
+			        )
+			    RETURN
+			        OudWaarde * BridgeOudNieuw[PctNieuw] / 100
+			)
+			```
+		formatString: #,0.0
+		displayFolder: Bridge
+		lineageTag: b0000009-0000-0000-0000-00000000000e
+
+	measure 'Gem Klachten per Week Sinds Start' = ```
+			// Gemiddelde per week over de weken die in de huidige filtercontext zitten
+			// (bv. week 0 t.e.m. 8 selecteren om de leercurve apart te zien van
+			// structurele afwijkingen nadien).
+			AVERAGEX ( VALUES ( DimDate[WekenSindsStart] ), [Aantal Klachten] )
+			```
+		formatString: #,0.0
+		displayFolder: Leercurve
+		lineageTag: b0000009-0000-0000-0000-00000000000f
+
+	measure 'Gem % Binnen Eindtijd per Week' = ```
+			AVERAGEX ( VALUES ( DimDate[WekenSindsStart] ), [% Ronden Binnen Eindtijd] )
+			```
+		formatString: 0.0%
+		displayFolder: Leercurve
+		lineageTag: b0000009-0000-0000-0000-000000000010
+
+	measure 'Gem Overuren per Week' = ```
+			AVERAGEX ( VALUES ( DimDate[WekenSindsStart] ), [Overuren Minuten] )
+			```
+		formatString: #,0.0
+		displayFolder: Leercurve
+		lineageTag: b0000009-0000-0000-0000-000000000011
+
+	partition _Measures = calculated
+		mode: import
+		source = ```
+				{ BLANK() }
+				```
+

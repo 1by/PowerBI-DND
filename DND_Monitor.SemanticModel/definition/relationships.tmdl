@@ -1,0 +1,20 @@
+relationship 3d1f6a10-0001-4a1a-9c1a-000000000001
+	fromColumn: FactBaseline.RondeKey
+	toColumn: DimDienst.RondeKey
+
+relationship 3d1f6a10-0002-4a1a-9c1a-000000000002
+	fromColumn: FactRealisatie.Datum
+	toColumn: DimDate.Date
+
+relationship 3d1f6a10-0003-4a1a-9c1a-000000000003
+	fromColumn: FactRealisatie.RondeKey
+	toColumn: DimDienst.RondeKey
+
+relationship 3d1f6a10-0004-4a1a-9c1a-000000000004
+	fromColumn: KLARA.Datum
+	toColumn: DimDate.Date
+
+relationship 3d1f6a10-0005-4a1a-9c1a-000000000005
+	fromColumn: PodVolumeHistorisch.Datum
+	toColumn: DimDate.Date
+

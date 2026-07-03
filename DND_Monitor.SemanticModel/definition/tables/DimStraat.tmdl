@@ -1,0 +1,48 @@
+table DimStraat
+	lineageTag: b0000003-0000-0000-0000-000000000001
+
+	column RondeNr
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RondeNr
+		lineageTag: b0000003-0000-0000-0000-000000000002
+
+	column Postcode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Postcode
+		lineageTag: b0000003-0000-0000-0000-000000000003
+
+	column Deelgemeente
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Deelgemeente
+		lineageTag: b0000003-0000-0000-0000-000000000004
+
+	column Straat
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Straat
+		lineageTag: b0000003-0000-0000-0000-000000000005
+
+	column Nummerbereik
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Nummerbereik
+		lineageTag: b0000003-0000-0000-0000-000000000006
+
+	partition DimStraat = m
+		mode: import
+		source =
+				let
+				    Bron = Csv.Document(File.Contents(DataFolder & "DimStraat.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Headers gepromoveerd" = Table.PromoteHeaders(Bron, [PromoteAllScalars=true]),
+				    #"Type gewijzigd" = Table.TransformColumnTypes(#"Headers gepromoveerd",{
+				        {"RondeNr", type text}, {"Postcode", type text}, {"Deelgemeente", type text},
+				        {"Straat", type text}, {"Nummerbereik", type text}
+				    })
+				in
+				    #"Type gewijzigd"
+
+	annotation PBI_ResultType = Table
+

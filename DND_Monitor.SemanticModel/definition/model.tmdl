@@ -1,0 +1,20 @@
+model Model
+	culture: nl-BE
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: nl-BE
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["DataFolder","RealisatieFolder","DimDienst","DimDate","DimStraat","FactBaseline","BridgeOudNieuw","FactRealisatie","KLARA","PodVolumeHistorisch"]
+
+ref table DimDienst
+ref table DimDate
+ref table DimStraat
+ref table FactBaseline
+ref table BridgeOudNieuw
+ref table FactRealisatie
+ref table KLARA
+ref table PodVolumeHistorisch
+ref table _Measures
+

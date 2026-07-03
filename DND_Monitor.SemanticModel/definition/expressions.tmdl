@@ -1,0 +1,8 @@
+expression DataFolder = "C:\PowerBI-DND\data\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: a1111111-0000-0000-0000-000000000001
+	annotation PBI_ResultType = Text
+
+expression RealisatieFolder = "C:\PowerBI-DND\realisatie\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: a1111111-0000-0000-0000-000000000002
+	annotation PBI_ResultType = Text
+
